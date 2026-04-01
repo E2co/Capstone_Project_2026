@@ -7,8 +7,8 @@ from datetime import datetime
 
 DB_CONFIG = {
     'host': 'localhost',
-    'user': 'root',          # your MySQL username
-    'password': 'password123',  # your MySQL password
+    'user': 'root',          # MySQL username
+    'password': 'password123',  # MySQL password
     'database': 'risknet_db'
 }
 
@@ -70,10 +70,10 @@ def weighted_ensemble(rule, ml, anomaly):
 @app.post("/assess_transaction/")
 def assess_transaction(tx: TransactionInput):
     try:
-        # Convert Pydantic model to dict for processing
+        
         tx_dict = tx.dict()
         
-        # Fetch recent history (optional)
+        # Fetch recent history 
         history_df = fetch_user_history()
         
         # Compute scores
@@ -87,7 +87,7 @@ def assess_transaction(tx: TransactionInput):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Optional: fetch last N transactions (for dashboard)
+# fetch last N transactions (for dashboard)
 @app.get("/transactions/")
 def get_transactions(limit: int = 10):
     try:
