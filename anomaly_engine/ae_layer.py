@@ -19,24 +19,37 @@ class AutoencoderFraudModel:
         scaler_path: str = "models/autoencoder_scaler.pkl",
         threshold_path: str = "models/autoencoder_threshold.pkl",
     ):
-        self.model     = load_model(model_path)
-        self.scaler    = joblib.load(scaler_path)
-        self.threshold = joblib.load(threshold_path)
+        try:
+            self.model     = load_model(model_path)
+            self.scaler    = joblib.load(scaler_path)
+            self.threshold = joblib.load(threshold_path)
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"Model artifact not found: {e}") from e
+
+    def _validate(self, transaction: dict) -> None:
+        missing = [col for col in self.FEATURE_COLS if col not in transaction]
+        if missing:
+            raise ValueError(f"Missing required features: {missing}")
+        if transaction.get("Amount", 0) < 0:
+            raise ValueError(f"Amount cannot be negative, got {transaction['Amount']}")
 
     def predict(self, transaction: dict) -> dict:
-        df      = pd.DataFrame([transaction])[self.FEATURE_COLS]
-        df['Amount'] = np.log1p(df['Amount'])                    # same preprocessing as training
-        scaled  = self.scaler.transform(df)
+        self._validate(transaction)
 
-        recon   = self.model.predict(scaled, verbose=0)
-        error   = float(np.mean(np.abs(scaled - recon)))
+        df = pd.DataFrame([transaction])[self.FEATURE_COLS]
+        df["Amount"] = np.log1p(df["Amount"])
+        scaled = self.scaler.transform(df)
 
-        fraud_prob = float(np.clip(error / (self.threshold * 2), 0, 1))
+        recon = self.model(scaled, training=False).numpy()
+        error = float(np.mean(np.abs(scaled - recon)))
+
+        # Sigmoid-based probability: 0.5 at threshold, smooth curve around it
+        fraud_prob = float(1 / (1 + np.exp(-10 * (error / self.threshold - 1))))
 
         return {
-            "reconstruction_error": error,
+            "reconstruction_error": round(error, 6),
             "threshold":            self.threshold,
-            "fraud_probability":    fraud_prob,
-            "ml_score":             fraud_prob * 100,
+            "fraud_probability":    round(fraud_prob, 4),
+            "ml_score":             round(fraud_prob * 100, 2),
             "signal":               "HIGH" if error >= self.threshold else "LOW",
         }
