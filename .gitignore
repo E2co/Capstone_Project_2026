@@ -1,4 +1,5 @@
 .venv/
+venv/
 Kaggle/
 __pycache__/
 creditcard.csv
