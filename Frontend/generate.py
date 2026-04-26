@@ -6,14 +6,15 @@ SQL_OUTPUT_FILE = 'insert_transactions.sql'
 TABLE_NAME = 'transactions'
 BATCH_SIZE = 1000
 
-# ── Download from Kaggle if CSV not present ───────────────────────────────────
 CSV_PATH = 'creditcard.csv'
 
 if not os.path.exists(CSV_PATH):
     print("Downloading dataset from Kaggle...")
-    os.system('kaggle datasets download -d mlg-ulb/creditcardfraud --unzip')
+    import kaggle
+    kaggle.api.authenticate()
+    kaggle.api.dataset_download_files('mlg-ulb/creditcardfraud', path='.', unzip=True)
     print("Download complete.")
-
+    
 # ── Load and Transform ────────────────────────────────────────────────────────
 df = pd.read_csv(CSV_PATH)
 base_time = datetime(2013, 9, 1)
