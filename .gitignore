@@ -1,1 +1,7 @@
 .venv/
+venv/
+Kaggle/
+__pycache__/
+creditcard.csv
+insert_transactions.sql
+
