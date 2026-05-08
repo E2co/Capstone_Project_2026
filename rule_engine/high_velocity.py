@@ -1,12 +1,12 @@
 from .base import AbstractRule
-from typing import Dict, Any, List
+from typing import Dict, Any
 from datetime import datetime, timedelta
 
-class HighVelocityRule(AbstractRule):  
+
+class HighVelocityRule(AbstractRule):
     """
     Rule that checks for high velocity transactions.
     Flags when the total spend by a user within `window_hours` exceeds `limit`.
-
     """
 
     def __init__(self, limit: float, window_hours: int = 1, weight: float = 1.0):
@@ -14,18 +14,12 @@ class HighVelocityRule(AbstractRule):
         self.limit = limit
         self.window_hours = window_hours
 
-
-    #def evaluate(self, transaction: Dict[str, Any], context: Dict[str, Any] = None) -> float:
-    #   # TODO Intergrate Redis windowed counter for real-time velocity tracking
-    #   # return 50.0  # Add 50 points
-    #   return 0.0
-
-def evaluate(self, transaction: Dict[str, Any], context: Dict[str, Any] = None) -> float:
+    def evaluate(self, transaction: Dict[str, Any], context: Dict[str, Any] = None) -> float:
         if not context or 'historical_transactions' not in context:
             return 0.0
 
-        user_id       = transaction.get('user_id')
-        current_time  = transaction.get('timestamp')
+        user_id        = transaction.get('user_id')
+        current_time   = transaction.get('timestamp')
         current_amount = transaction.get('amount', 0.0)
 
         if not user_id or not current_time:
@@ -43,3 +37,4 @@ def evaluate(self, transaction: Dict[str, Any], context: Dict[str, Any] = None) 
         if windowed_total > self.limit:
             return 50.0
 
+        return 0.0
