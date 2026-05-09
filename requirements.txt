@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+pydantic
+mysql-connector-python
+numpy
+pandas
+scikit-learn
+xgboost
+joblib
+requests
+redis
+kafka-python
+python-dateutil
+tqdm
+tensorflow-macos
+tensorflow-metal
