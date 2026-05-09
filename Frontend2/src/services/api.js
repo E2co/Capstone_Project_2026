@@ -19,6 +19,7 @@ export const transactionAction  = (data) => API.post("/transaction_action/", dat
 // ── Settings ──────────────────────────────────────────────────────────────────
 export const getSettings    = ()     => API.get("/settings/");
 export const updateSettings = (data) => API.post("/settings/", data);
+export const getHealth = () => API.get("/health/");
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
 export const getAnalytics = (filters = {}) => {
