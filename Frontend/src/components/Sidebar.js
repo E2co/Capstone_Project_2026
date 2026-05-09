@@ -37,47 +37,23 @@ const navItems = [
   },
   ];
 
-function Sidebar() {
+function Sidebar({ user, onLogout }) {
   const location = useLocation();
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-logo">
-        <div className="logo-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M12 2L3 7l9 5 9-5-9-5z" fill="#1D4ED8"/>
-            <path d="M3 12l9 5 9-5" stroke="#1D4ED8" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M3 17l9 5 9-5" stroke="#93C5FD" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-        </div>
-        <span className="logo-text">RiskNet</span>
-      </div>
-
-      <nav className="sidebar-nav">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`nav-item ${isActive ? "nav-item--active" : ""}`}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              <span className="nav-label">{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
+      {/* ... rest stays the same ... */}
       <div className="sidebar-footer">
-        <div className="user-avatar">A</div>
+        <div className="user-avatar">{user ? user[0].toUpperCase() : "A"}</div>
         <div className="user-info">
-          <div className="user-name">Admin Specialist</div>
-          <div className="user-role">Level 3 Access</div>
+          <div className="user-name">{user || "Admin"}</div>
+          <div className="user-role">RiskNet Analyst</div>
         </div>
+        <button onClick={onLogout} style={{
+          marginLeft: "auto", background: "none", border: "none",
+          cursor: "pointer", color: "var(--text-muted)", fontSize: 18
+        }} title="Logout">⏻</button>
       </div>
     </aside>
   );
 }
-
-export default Sidebar;
