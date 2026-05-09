@@ -371,6 +371,22 @@ def get_feedback(limit: int = 100):
     except Exception as e:
         raise HTTPException(500, str(e))
 
+@app.get("/health/")
+def health_check():
+    status = { "fastapi": "online", "mysql": "offline", "ml_model": "offline" }
+    try:
+        conn = get_db()
+        conn.close()
+        status["mysql"] = "online"
+    except:
+        pass
+    try:
+        ml_engine.predict({"Amount": 1, **{f"V{i}": 0 for i in range(1, 29)}})
+        status["ml_model"] = "online"
+    except:
+        pass
+    return status
+
 
 @app.post("/retrain/")
 def retrain_model():
