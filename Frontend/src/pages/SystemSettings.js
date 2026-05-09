@@ -59,7 +59,7 @@ function WeightPreview({ rule, ml, anomaly }) {
   );
 }
 
-function SystemSettings() {
+function SystemSettings({ user, onLogout }) {
   // Defaults aligned with documentation: Rule=20, ML=50, Anomaly=30
   const [settings, setSettings] = useState({
     rule_weight:           20,
@@ -100,7 +100,7 @@ function SystemSettings() {
 
   return (
     <div className="layout">
-      <Sidebar />
+      <Sidebar user={user} onLogout={onLogout} />
       <div className="main-content settings-dark">
         <div className="page-header settings-header">
           <div className="settings-header-icon">
