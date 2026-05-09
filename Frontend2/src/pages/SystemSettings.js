@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
-import { getSettings, updateSettings, retrainModel } from "../services/api";
+import { getSettings, updateSettings, retrainModel, getHealth } from "../services/api";
 import "./SystemSettings.css";
 
 function SliderRow({ label, value, onChange, hint }) {
@@ -36,7 +36,6 @@ function HealthDial({ value }) {
   );
 }
 
-// ── Weight preview bar ─────────────────────────────────────────────────────────
 function WeightPreview({ rule, ml, anomaly }) {
   const total = rule + ml + anomaly || 1;
   const rPct  = Math.round((rule    / total) * 100);
@@ -60,7 +59,7 @@ function WeightPreview({ rule, ml, anomaly }) {
 }
 
 function SystemSettings({ user, onLogout }) {
-    const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState({
     rule_weight:           20,
     ml_core:               50,
     anomaly_weight:        30,
@@ -72,14 +71,38 @@ function SystemSettings({ user, onLogout }) {
   const [saved,          setSaved]          = useState(false);
   const [retraining,     setRetraining]     = useState(false);
   const [retrainMessage, setRetrainMessage] = useState(null);
+  const [systemHealth,   setSystemHealth]   = useState({
+    fastapi:  "checking",
+    mysql:    "checking",
+    ml_model: "checking",
+  });
+  const [healthLoading, setHealthLoading] = useState(true);
 
-  const systemHealth = { kafka: "online", redis: "online", fastapi: "degraded" };
-  const systemInfo   = { lastTrained: "2026.1.25", trainingData: "1.5K Rows", newlyFlagged: "2,300" };
+  const systemInfo = {
+    lastTrained:  "2026.1.25",
+    trainingData: "1.5K Rows",
+    newlyFlagged: "2,300",
+  };
+
+  const fetchHealth = () => {
+    setHealthLoading(true);
+    getHealth()
+      .then(res => { setSystemHealth(res.data); setHealthLoading(false); })
+      .catch(() => {
+        setSystemHealth({ fastapi: "offline", mysql: "offline", ml_model: "offline" });
+        setHealthLoading(false);
+      });
+  };
 
   useEffect(() => {
     getSettings()
       .then(res => setSettings(prev => ({ ...prev, ...res.data })))
       .catch(() => {});
+    fetchHealth();
+
+    // Refresh health every 30 seconds
+    const interval = setInterval(fetchHealth, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleSave = () => {
@@ -91,16 +114,35 @@ function SystemSettings({ user, onLogout }) {
   const handleRetrain = () => {
     setRetraining(true); setRetrainMessage(null);
     retrainModel()
-      .then(() => { setRetrainMessage({ text: "Model retrained successfully!", type: "success" }); setRetraining(false); })
-      .catch(() => { setRetrainMessage({ text: "Retrain failed — check model files", type: "error" }); setRetraining(false); });
+      .then(() => {
+        setRetrainMessage({ text: "Model retrained successfully!", type: "success" });
+        setRetraining(false);
+        fetchHealth(); // refresh health after retrain
+      })
+      .catch(() => {
+        setRetrainMessage({ text: "Retrain failed — check model files", type: "error" });
+        setRetraining(false);
+      });
   };
 
   const set = (key, val) => setSettings(p => ({ ...p, [key]: val }));
 
+  // Calculate health percentage from actual status
+  const healthPct = Math.round(
+    (Object.values(systemHealth).filter(s => s === "online").length /
+     Object.keys(systemHealth).length) * 100
+  );
+
+  const serviceLabels = {
+    fastapi:  "Fast API",
+    mysql:    "MySQL",
+    ml_model: "ML Model",
+  };
+
   return (
     <div className="layout">
       <Sidebar user={user} onLogout={onLogout} />
-     <div className="main-content">
+      <div className="main-content">
         <div className="page-header settings-header">
           <div className="settings-header-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -173,7 +215,6 @@ function SystemSettings({ user, onLogout }) {
                   onChange={v => set("review_threshold", v)}
                   hint="Scores ≥ threshold → HIGH risk tier" />
 
-                {/* Score tier legend */}
                 <div className="tier-legend">
                   <div className="tier-item">
                     <span className="tier-dot" style={{ background:"#10B981" }} />
@@ -218,29 +259,48 @@ function SystemSettings({ user, onLogout }) {
             </div>
 
             <div className="settings-right">
-              {/* System health */}
+              {/* System health — live */}
               <div className="settings-card">
-                <div className="settings-card-section-head">SYSTEM HEALTH</div>
-                <HealthDial value={78} />
+                <div className="settings-card-section-head">
+                  SYSTEM HEALTH
+                  <button onClick={fetchHealth} style={{
+                    marginLeft: "auto", background: "none", border: "none",
+                    cursor: "pointer", color: "var(--text-muted)", fontSize: 12,
+                    fontFamily: "DM Sans", padding: 0
+                  }}>
+                    {healthLoading ? "Checking…" : "↻ Refresh"}
+                  </button>
+                </div>
+                <HealthDial value={healthLoading ? 0 : healthPct} />
                 <div className="health-services">
                   {Object.entries(systemHealth).map(([svc, status]) => {
-                    const color = status === "online" ? "#10B981" : status === "degraded" ? "#F59E0B" : "#EF4444";
+                    const color = status === "online"   ? "#10B981"
+                                : status === "checking" ? "#94A3B8"
+                                : status === "degraded" ? "#F59E0B"
+                                : "#EF4444";
                     return (
                       <div key={svc} className="health-row">
                         <span className="health-service-name">
-                          {svc === "fastapi" ? "Fast API" : svc.charAt(0).toUpperCase() + svc.slice(1)}
+                          {serviceLabels[svc] || svc}
                         </span>
-                        <span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontSize: 11, color, fontWeight: 600, textTransform: "uppercase" }}>
+                            {status}
+                          </span>
                           {status === "online" ? (
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
                               <circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/>
+                            </svg>
+                          ) : status === "checking" ? (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+                              <circle cx="12" cy="12" r="10"/>
                             </svg>
                           ) : (
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
                               <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
                             </svg>
                           )}
-                        </span>
+                        </div>
                       </div>
                     );
                   })}
@@ -251,23 +311,42 @@ function SystemSettings({ user, onLogout }) {
               <div className="settings-card">
                 <div className="settings-card-section-head">LATEST SYSTEM INFO</div>
                 <div className="sysinfo-list">
-                  {[
-                    { icon: "calendar", label: "LAST TRAINED",  value: systemInfo.lastTrained },
-                    { icon: "db",       label: "TRAINING DATA", value: systemInfo.trainingData },
-                    { icon: "flag",     label: "NEWLY FLAGGED", value: systemInfo.newlyFlagged },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="sysinfo-row">
-                      <div className="sysinfo-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2">
-                          <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="sysinfo-label">{label}</div>
-                        <div className="sysinfo-value">{value}</div>
-                      </div>
+                  <div className="sysinfo-row">
+                    <div className="sysinfo-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                      </svg>
                     </div>
-                  ))}
+                    <div>
+                      <div className="sysinfo-label">LAST TRAINED</div>
+                      <div className="sysinfo-value">{systemInfo.lastTrained}</div>
+                    </div>
+                  </div>
+                  <div className="sysinfo-row">
+                    <div className="sysinfo-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2">
+                        <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="sysinfo-label">TRAINING DATA</div>
+                      <div className="sysinfo-value">{systemInfo.trainingData}</div>
+                    </div>
+                  </div>
+                  <div className="sysinfo-row">
+                    <div className="sysinfo-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2">
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                        <line x1="4" y1="22" x2="4" y2="15"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="sysinfo-label">NEWLY FLAGGED</div>
+                      <div className="sysinfo-value">{systemInfo.newlyFlagged}</div>
+                    </div>
+                  </div>
                 </div>
 
                 {retrainMessage && (
