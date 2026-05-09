@@ -3,19 +3,16 @@ import Sidebar from "../components/Sidebar";
 import { getTransactions, assessTransaction, transactionAction, getAuditLog, getFeedback } from "../services/api";
 import "./HomeDashboard.css";
 
-// ── Unified ID format ─────────────────────────────────────────────────────────
 function fmtTxnId(id) {
   return `TXN-${String(id).padStart(8, "0")}`;
 }
 
-// ── Score → classification (mirrors scoring_service.py) ───────────────────────
 function classifyScore(score) {
-  if (score >= 70) return { tier: "FRAUDULENT",  label: "Fraudulent",  color: "#EF4444", bg: "#FEF2F2", confidence: score };
-  if (score >= 40) return { tier: "SUSPICIOUS",  label: "Suspicious",  color: "#F59E0B", bg: "#FFFBEB", confidence: score };
-  return              { tier: "LEGITIMATE",  label: "Legitimate",  color: "#10B981", bg: "#ECFDF5", confidence: 100 - score };
+  if (score >= 70) return { tier: "FRAUDULENT", label: "Fraudulent", color: "#EF4444", bg: "#FEF2F2", confidence: score };
+  if (score >= 40) return { tier: "SUSPICIOUS", label: "Suspicious", color: "#F59E0B", bg: "#FFFBEB", confidence: score };
+  return { tier: "LEGITIMATE", label: "Legitimate", color: "#10B981", bg: "#ECFDF5", confidence: 100 - score };
 }
 
-// ── Auto-classification badge ─────────────────────────────────────────────────
 function ClassificationBadge({ score, autoFlagged }) {
   const cls = classifyScore(score);
   return (
@@ -28,12 +25,11 @@ function ClassificationBadge({ score, autoFlagged }) {
   );
 }
 
-// ── Risk gauge ────────────────────────────────────────────────────────────────
 function RiskGauge({ score }) {
-  const cls         = classifyScore(score);
-  const radius      = 54;
+  const cls = classifyScore(score);
+  const radius = 54;
   const circumference = 2 * Math.PI * radius;
-  const dashOffset  = circumference - (score / 100) * circumference;
+  const dashOffset = circumference - (score / 100) * circumference;
   return (
     <div className="risk-gauge">
       <svg width="148" height="148" viewBox="0 0 148 148">
@@ -74,7 +70,6 @@ function formatTime(ts) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-// ── Audit timeline ─────────────────────────────────────────────────────────────
 function AuditTimeline({ txId, onClose }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,10 +80,10 @@ function AuditTimeline({ txId, onClose }) {
   }, [txId]);
 
   const steps = [
-    { key: "ai_scoring",    icon: "⚡", label: "AI Scoring" },
+    { key: "ai_scoring", icon: "⚡", label: "AI Scoring" },
     { key: "classification", icon: "🔍", label: "Classification" },
-    { key: "auto_flag",     icon: "🚩", label: "Auto-flag Check" },
-    { key: "logged",        icon: "📋", label: "Audit Logged" },
+    { key: "auto_flag", icon: "🚩", label: "Auto-flag Check" },
+    { key: "logged", icon: "📋", label: "Audit Logged" },
   ];
 
   return (
@@ -112,7 +107,6 @@ function AuditTimeline({ txId, onClose }) {
               const cls = classifyScore(e.final_score || 0);
               return (
                 <div key={e.id} className="audit-entry">
-                  {/* Timeline connector */}
                   <div className="timeline-track">
                     <div className="timeline-dot" style={{ background: cls.color }} />
                     {idx < entries.length - 1 && <div className="timeline-line" />}
@@ -122,7 +116,6 @@ function AuditTimeline({ txId, onClose }) {
                       {new Date(e.created_at).toLocaleString()}
                       {e.auto_flagged && <span className="auto-flag-chip">AUTO-FLAGGED</span>}
                     </div>
-                    {/* Step flow */}
                     <div className="audit-step-flow">
                       {steps.map((s, si) => (
                         <div key={s.key} className="audit-step">
@@ -132,7 +125,6 @@ function AuditTimeline({ txId, onClose }) {
                         </div>
                       ))}
                     </div>
-                    {/* Score breakdown */}
                     <div className="audit-scores-grid">
                       <div className="audit-score-cell">
                         <div className="asc-label">ML Score</div>
@@ -170,7 +162,6 @@ function AuditTimeline({ txId, onClose }) {
   );
 }
 
-// ── Feedback panel (mini card on home dashboard) ──────────────────────────────
 function FeedbackPanel({ stats }) {
   if (!stats) return null;
   const total = stats.total || 0;
@@ -216,7 +207,6 @@ function FeedbackPanel({ stats }) {
   );
 }
 
-// ── Filter bar ────────────────────────────────────────────────────────────────
 function FilterBar({ filters, onChange }) {
   return (
     <div className="filter-bar">
@@ -238,22 +228,21 @@ function FilterBar({ filters, onChange }) {
   );
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
-function HomeDashboard() {
-  const [transactions,   setTransactions]   = useState([]);
-  const [selectedTx,     setSelectedTx]     = useState(null);
-  const [risk,           setRisk]           = useState(null);
-  const [loading,        setLoading]        = useState(false);
-  const [error,          setError]          = useState(null);
-  const [riskCache,      setRiskCache]      = useState({});
-  const [search,         setSearch]         = useState("");
-  const [filters,        setFilters]        = useState({ status: "all", fraudClass: null });
-  const [limit,          setLimit]          = useState(20);
-  const [loadingMore,    setLoadingMore]    = useState(false);
-  const [actionLoading,  setActionLoading]  = useState(false);
-  const [actionMessage,  setActionMessage]  = useState(null);
-  const [showAudit,      setShowAudit]      = useState(false);
-  const [feedbackStats,  setFeedbackStats]  = useState(null);
+function HomeDashboard({ user, onLogout }) {
+  const [transactions, setTransactions] = useState([]);
+  const [selectedTx, setSelectedTx] = useState(null);
+  const [risk, setRisk] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [riskCache, setRiskCache] = useState({});
+  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState({ status: "all", fraudClass: null });
+  const [limit, setLimit] = useState(20);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState(null);
+  const [showAudit, setShowAudit] = useState(false);
+  const [feedbackStats, setFeedbackStats] = useState(null);
 
   const loadTransactions = useCallback((lim = limit, q = search, f = filters) => {
     return getTransactions(lim, { search: q, ...f })
@@ -261,7 +250,6 @@ function HomeDashboard() {
       .catch(() => setError("Failed to load transactions"));
   }, [limit, search, filters]);
 
-  // Load feedback stats
   const loadFeedback = useCallback(() => {
     getFeedback(1).then(r => setFeedbackStats(r.data.stats)).catch(() => {});
   }, []);
@@ -278,7 +266,6 @@ function HomeDashboard() {
     loadTransactions(nl, search, filters).finally(() => setLoadingMore(false));
   };
 
-  // Risk assessment
   useEffect(() => {
     if (!selectedTx) return;
     const txId = selectedTx.id;
@@ -294,11 +281,11 @@ function HomeDashboard() {
       .then(res => {
         const result = {
           ...res.data.final_assessment,
-          ml_score:      res.data.ml_details?.ml_score ?? null,
-          anomaly_score: res.data.anomaly_score         ?? null,
-          rule_score:    res.data.rule_score            ?? null,
-          weights_used:  res.data.weights_used          ?? null,
-          auto_flagged:  res.data.auto_flagged          ?? false,
+          ml_score: res.data.ml_details?.ml_score ?? null,
+          anomaly_score: res.data.anomaly_score ?? null,
+          rule_score: res.data.rule_score ?? null,
+          weights_used: res.data.weights_used ?? null,
+          auto_flagged: res.data.auto_flagged ?? false,
         };
         setRisk(result); setRiskCache(p => ({ ...p, [txId]: result }));
       })
@@ -312,13 +299,13 @@ function HomeDashboard() {
     transactionAction({ transaction_id: selectedTx.id, action })
       .then(() => {
         const label = action === "flag" ? "🚩 Flagged — decision recorded for retraining"
-                    : action === "approve" ? "✓ Approved — labelled as legitimate"
-                    : "👁 Sent to Review — pending analyst";
+          : action === "approve" ? "✓ Approved — labelled as legitimate"
+          : "👁 Sent to Review — pending analyst";
         setActionMessage({ text: label, type: action });
         setTransactions(p => p.map(t => t.id === selectedTx.id ? { ...t, status: action } : t));
         setSelectedTx(p => ({ ...p, status: action }));
         setRiskCache(p => { const u = { ...p }; delete u[selectedTx.id]; return u; });
-        loadFeedback(); // refresh feedback panel
+        loadFeedback();
       })
       .catch(() => setActionMessage({ text: "Action failed", type: "error" }))
       .finally(() => setActionLoading(false));
@@ -327,24 +314,21 @@ function HomeDashboard() {
   const getListBadge = tx => {
     const cached = riskCache[tx.id];
     if (tx.status && tx.status !== "pending") {
-      if (tx.status === "flag")    return <span className="badge badge-danger">🚩 Flagged</span>;
+      if (tx.status === "flag") return <span className="badge badge-danger">🚩 Flagged</span>;
       if (tx.status === "approve") return <span className="badge badge-success">✓ Approved</span>;
-      if (tx.status === "review")  return <span className="badge badge-warning">👁 Review</span>;
+      if (tx.status === "review") return <span className="badge badge-warning">👁 Review</span>;
     }
     if (cached?.tier) {
       const cls = classifyScore(cached.score);
-      return <span className="badge" style={{ background: cls.bg, color: cls.color }}>
-        {cls.label}
-      </span>;
+      return <span className="badge" style={{ background: cls.bg, color: cls.color }}>{cls.label}</span>;
     }
     return null;
   };
 
   return (
     <div className="layout">
-      <Sidebar />
+      <Sidebar user={user} onLogout={onLogout} />
       <div className="main-content">
-        {/* Header */}
         <div className="page-header">
           <h1 className="header-title">Fraud Monitoring Console</h1>
           <div className="header-search">
@@ -364,7 +348,6 @@ function HomeDashboard() {
         </div>
 
         <div className="home-body">
-          {/* Left panel */}
           <div className="txn-panel">
             <div className="txn-panel-header">
               <span className="txn-panel-title">ACTIVE ALERTS</span>
@@ -396,7 +379,6 @@ function HomeDashboard() {
             </div>
           </div>
 
-          {/* Right panel */}
           <div className="details-panel">
             {!selectedTx ? (
               <div className="empty-details">
@@ -408,7 +390,6 @@ function HomeDashboard() {
               </div>
             ) : (
               <>
-                {/* Transaction header */}
                 <div className="card details-header-card">
                   <div>
                     <h2 className="details-title">Transaction Details</h2>
@@ -423,7 +404,6 @@ function HomeDashboard() {
                   </div>
                 </div>
 
-                {/* Auto-classification banner */}
                 {risk && (
                   <div className="classification-banner card" style={{ "--cls-color": classifyScore(risk.score).color, "--cls-bg": classifyScore(risk.score).bg }}>
                     <div className="cls-banner-left">
@@ -437,7 +417,6 @@ function HomeDashboard() {
                 )}
 
                 <div className="details-grid">
-                  {/* Info */}
                   <div className="card txn-info-card">
                     <div className="card-section-title">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -477,7 +456,6 @@ function HomeDashboard() {
                     )}
                   </div>
 
-                  {/* Risk gauge */}
                   <div className="card risk-card">
                     <div className="card-section-title">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -495,7 +473,6 @@ function HomeDashboard() {
                   </div>
                 </div>
 
-                {/* Engine analysis */}
                 {risk && (
                   <div className="card engine-card">
                     <div className="card-section-title">
@@ -541,15 +518,12 @@ function HomeDashboard() {
                   </div>
                 )}
 
-                {/* Feedback panel */}
                 {feedbackStats && <FeedbackPanel stats={feedbackStats} />}
 
-                {/* Action message */}
                 {actionMessage && (
                   <div className={`action-message ${actionMessage.type}`}>{actionMessage.text}</div>
                 )}
 
-                {/* Actions */}
                 <div className="action-buttons">
                   <button className="btn btn-outline" onClick={() => handleAction("review")} disabled={actionLoading}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
