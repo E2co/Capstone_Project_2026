@@ -233,7 +233,7 @@ function getPresetDates(preset) {
 const STATIC_ACCURACY_CURVE = [62, 70, 75, 90, 82, 78, 88, 95, 80, 98];
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-function AnalyticsDashboard() {
+function AnalyticsDashboard({ user, onLogout }) {
   const [dateFilter, setDateFilter] = useState("Last 7 Days");
   const [dateFrom,   setDateFrom]   = useState(getPresetDates("Last 7 Days").from);
   const [dateTo,     setDateTo]     = useState(getPresetDates("Last 7 Days").to);
@@ -282,7 +282,7 @@ function AnalyticsDashboard() {
 
   return (
     <div className="layout">
-      <Sidebar />
+      <Sidebar user={user} onLogout={onLogout} />
       <div className="main-content">
 
         {/* Header */}
