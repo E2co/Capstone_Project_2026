@@ -41,13 +41,13 @@ def get_db():
     return mysql.connector.connect(**DB_CONFIG)
 
 # ── Models ────────────────────────────────────────────────────────────────────
-ml_engine = XGBoostFraudModel(model_path="../Models/best_model_overall.pkl")
+ml_engine = XGBoostFraudModel(model_path="Models/best_model_overall.pkl")
 
 try:
     anomaly_engine = AutoencoderFraudModel(
-        model_path="../Models/autoencoder_refined.keras",
-        scaler_path="../Models/autoencoder_scaler.pkl",
-        threshold_path="../Models/autoencoder_threshold.pkl",
+        model_path="Models/autoencoder_refined.keras",
+        scaler_path="Models/autoencoder_scaler.pkl",
+        threshold_path="Models/autoencoder_threshold.pkl",
     )
 except FileNotFoundError:
     anomaly_engine = None
