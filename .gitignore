@@ -4,5 +4,5 @@ Kaggle/
 __pycache__/
 creditcard.csv
 insert_transactions.sql
-node_models/
+node_modules/
 
