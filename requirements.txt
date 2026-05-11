@@ -1,5 +1,5 @@
 fastapi
-uvicorn
+uvicorn[standard]
 pydantic
 mysql-connector-python
 numpy
@@ -12,5 +12,4 @@ redis
 kafka-python
 python-dateutil
 tqdm
-tensorflow-macos
-tensorflow-metal
+tensorflow
