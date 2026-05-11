@@ -33,8 +33,11 @@ import src.services.settings_service as settings_svc
 
 # ── DB ────────────────────────────────────────────────────────────────────────
 DB_CONFIG = {
-    'host': 'localhost', 'user': 'root',
-    'password': 'password123', 'database': 'risknet_db'
+    'host':     os.environ['MYSQLHOST'],
+    'user':     os.environ['MYSQLUSER'],
+    'password': os.environ['MYSQLPASSWORD'],
+    'database': os.environ['MYSQLDATABASE'],
+    'port':     int(os.environ.get('MYSQLPORT', 3306)),
 }
 
 def get_db():
@@ -65,8 +68,14 @@ rule_engine = RuleEngine([
 
 app = FastAPI(title="RiskNet API", version="2.6.0")
 app.add_middleware(CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
-    allow_methods=["*"], allow_headers=["*"])
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://your-app.vercel.app",   # ← add this, update after Vercel deploy
+    ],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("startup")
 def startup():
