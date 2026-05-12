@@ -58,7 +58,7 @@ function WeightPreview({ rule, ml, anomaly }) {
   );
 }
 
-function SystemSettings({ user, onLogout }) {
+function SystemSettings({ user, role, onLogout }) {
   const [settings, setSettings] = useState({
     rule_weight:           20,
     ml_core:               50,
@@ -141,7 +141,7 @@ function SystemSettings({ user, onLogout }) {
 
   return (
     <div className="layout">
-      <Sidebar user={user} onLogout={onLogout} />
+     <Sidebar user={user} role={role} onLogout={onLogout} />
       <div className="main-content">
         <div className="page-header settings-header">
           <div className="settings-header-icon">
