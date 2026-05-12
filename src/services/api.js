@@ -1,62 +1,140 @@
-import axios from "axios";
+import { Link, useLocation } from "react-router-dom";
+import "./Sidebar.css";
 
-const API = axios.create({ baseURL: "http://127.0.0.1:8000" });
+function Sidebar({ user, role, onLogout }) {
+  const location = useLocation();
 
-// ── Transactions ──────────────────────────────────────────────────────────────
-export const getTransactions = (limit = 20, filters = {}) => {
-  const params = { limit };
-  if (filters.search)     params.search     = filters.search;
-  if (filters.status && filters.status !== "all") params.status = filters.status;
-  if (filters.fraudClass != null) params["class"] = filters.fraudClass;
-  if (filters.minAmount  != null) params.min_amount = filters.minAmount;
-  if (filters.maxAmount  != null) params.max_amount = filters.maxAmount;
-  return API.get("/transactions/", { params });
-};
+  const navItems = [
+    {
+      path: "/analytics",
+      label: "Analytics Dashboard",
+      icon: (
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+      ),
+    },
+    {
+      path: "/",
+      label: "Transactions",
+      icon: (
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <rect x="2" y="5" width="20" height="14" rx="2" />
+          <path d="M2 10h20" />
+        </svg>
+      ),
+    },
+    ...(role === "Admin Specialist"
+      ? [
+          {
+            path: "/settings",
+            label: "System Settings",
+            icon: (
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" />
+                <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
+              </svg>
+            ),
+          },
+        ]
+      : []),
+  ];
 
-export const assessTransaction = (data) => API.post("/assess_transaction/", data);
-export const transactionAction  = (data) => API.post("/transaction_action/", data);
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-logo">
+        <div className="logo-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L3 7l9 5 9-5-9-5z" fill="#1D4ED8" />
+            <path
+              d="M3 12l9 5 9-5"
+              stroke="#1D4ED8"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <path
+              d="M3 17l9 5 9-5"
+              stroke="#93C5FD"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+        <span className="logo-text">RiskNet</span>
+      </div>
 
-// ── Settings ──────────────────────────────────────────────────────────────────
-export const getSettings    = ()     => API.get("/settings/");
-export const updateSettings = (data) => API.post("/settings/", data);
-export const getHealth = () => API.get("/health/");
+      <nav className="sidebar-nav">
+        {navItems.map((item) => {
+          const isActive = location.pathname === item.path;
 
-// ── Analytics ─────────────────────────────────────────────────────────────────
-export const getAnalytics = (filters = {}) => {
-  const params = {};
-  if (filters.dateFrom) params.date_from = filters.dateFrom;
-  if (filters.dateTo)   params.date_to   = filters.dateTo;
-  return API.get("/analytics/", { params });
-};
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`nav-item ${isActive ? "nav-item--active" : ""}`}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              <span className="nav-label">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
-// ── Export (triggers browser file download) ───────────────────────────────────
-export const exportTransactions = async (filters = {}) => {
-  const params = { format: "csv" };
-  if (filters.status && filters.status !== "all") params.status = filters.status;
-  if (filters.fraudClass != null) params["class"] = filters.fraudClass;
-  if (filters.dateFrom) params.date_from = filters.dateFrom;
-  if (filters.dateTo)   params.date_to   = filters.dateTo;
-  const response = await API.get("/export/transactions/", { params, responseType: "blob" });
-  const url  = window.URL.createObjectURL(new Blob([response.data]));
-  const link = document.createElement("a");
-  link.href  = url;
-  link.setAttribute("download", `risknet_export_${new Date().toISOString().slice(0,10)}.csv`);
-  document.body.appendChild(link);
-  link.click(); link.remove();
-  window.URL.revokeObjectURL(url);
-};
+      <div className="sidebar-footer">
+        <div className="user-avatar">
+          {user ? user.charAt(0).toUpperCase() : "A"}
+        </div>
 
-// ── Audit log ─────────────────────────────────────────────────────────────────
-export const getAuditLog = (transactionId = null, limit = 50) => {
-  const params = { limit };
-  if (transactionId) params.transaction_id = transactionId;
-  return API.get("/audit_log/", { params });
-};
+        <div className="user-info">
+          <div className="user-name">{user || "Admin"}</div>
+          <div className="user-role">{role || "RiskNet Analyst"}</div>
+        </div>
 
-// ── Feedback ──────────────────────────────────────────────────────────────────
-export const getFeedback  = (limit = 100) => API.get("/feedback/", { params: { limit } });
-export const submitAnalystFeedback = (transactionId, data) =>
-  API.post(`/feedback/${transactionId}`, data);
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            title="Logout"
+            style={{
+              marginLeft: "auto",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--text-muted)",
+              fontSize: "18px",
+              padding: "4px",
+            }}
+          >
+            ⏻
+          </button>
+        )}
+      </div>
+    </aside>
+  );
+}
 
-// ── Retrain ───────────────────────────────────────────────────────────────────
-export const retrainModel = () => API.post("/retrain/");
+export default Sidebar;
