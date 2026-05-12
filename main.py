@@ -33,24 +33,21 @@ import src.services.settings_service as settings_svc
 
 # ── DB ────────────────────────────────────────────────────────────────────────
 DB_CONFIG = {
-    'host':     os.environ['MYSQLHOST'],
-    'user':     os.environ['MYSQLUSER'],
-    'password': os.environ['MYSQLPASSWORD'],
-    'database': os.environ['MYSQLDATABASE'],
-    'port':     int(os.environ.get('MYSQLPORT', 3306)),
+    'host': 'localhost', 'user': 'root',
+    'password': 'password123', 'database': 'risknet_db'
 }
 
 def get_db():
     return mysql.connector.connect(**DB_CONFIG)
 
 # ── Models ────────────────────────────────────────────────────────────────────
-ml_engine = XGBoostFraudModel(model_path="Models/best_model_overall.pkl")
+ml_engine = XGBoostFraudModel(model_path="../Models/best_model_overall.pkl")
 
 try:
     anomaly_engine = AutoencoderFraudModel(
-        model_path="Models/autoencoder_refined.keras",
-        scaler_path="Models/autoencoder_scaler.pkl",
-        threshold_path="Models/autoencoder_threshold.pkl",
+        model_path="../Models/autoencoder_refined.keras",
+        scaler_path="../Models/autoencoder_scaler.pkl",
+        threshold_path="../Models/autoencoder_threshold.pkl",
     )
 except FileNotFoundError:
     anomaly_engine = None
@@ -68,14 +65,8 @@ rule_engine = RuleEngine([
 
 app = FastAPI(title="RiskNet API", version="2.6.0")
 app.add_middleware(CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "https://your-app.vercel.app",   # ← add this, update after Vercel deploy
-    ],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_methods=["*"], allow_headers=["*"])
 
 @app.on_event("startup")
 def startup():
@@ -395,7 +386,41 @@ def health_check():
     except:
         pass
     return status
+class FeedbackRequest(BaseModel):
+    label: str  # "Fraud" or "Legitimate" or "Escalate"
+    analyst: str
+    notes: Optional[str] = None
 
+@app.post("/feedback/{transaction_id}")
+def record_feedback(transaction_id: int, payload: FeedbackRequest):
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Map label to status
+        status = "flag" if payload.label == "Fraud" else "approve" if payload.label == "Legitimate" else "escalate"
+
+        # Update transaction status
+        cursor.execute("UPDATE transactions SET status=%s WHERE id=%s", (status, transaction_id))
+
+        # Insert feedback
+        cursor.execute("""
+            INSERT INTO feedback (transaction_id, analyst_action, label, notes, analyst, created_at)
+            VALUES (%s, %s, %s, %s, %s, NOW())
+        """, (transaction_id, status, payload.label, payload.notes, payload.analyst))
+
+        # Write audit log
+        cursor.execute("""
+            INSERT INTO audit_log (transaction_id, risk_tier, created_at)
+            VALUES (%s, %s, NOW())
+        """, (transaction_id, payload.label))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"status": "success", "label": payload.label, "transaction_id": transaction_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/retrain/")
 def retrain_model():
