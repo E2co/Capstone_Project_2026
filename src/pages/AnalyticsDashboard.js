@@ -227,7 +227,7 @@ function getPresetDates(preset) {
 
 const STATIC_ACCURACY_CURVE = [62, 70, 75, 90, 82, 78, 88, 95, 80, 98];
 
-function AnalyticsDashboard({ user, onLogout }) {
+function AnalyticsDashboard({ user, role, onLogout }) {
   const [dateFilter, setDateFilter] = useState("All Data");
   const [dateFrom,   setDateFrom]   = useState("");
   const [dateTo,     setDateTo]     = useState("");
@@ -292,7 +292,7 @@ function AnalyticsDashboard({ user, onLogout }) {
 
   return (
     <div className="layout">
-      <Sidebar user={user} onLogout={onLogout} />
+     <Sidebar user={user} role={role} onLogout={onLogout} />
       <div className="main-content">
         <div className="page-header">
           <h1 className="header-title">Analytics Dashboard</h1>
