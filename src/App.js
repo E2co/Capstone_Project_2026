@@ -8,12 +8,39 @@ import "./App.css";
 
 function App() {
   const [user, setUser] = useState(() => {
-    return sessionStorage.getItem("risknet_user") || null;
+    const stored = sessionStorage.getItem("risknet_user");
+    if (!stored) return null;
+
+    try {
+      // Normal case: stored as JSON object
+      return JSON.parse(stored);
+    } catch {
+      // Legacy case: stored as plain text like "admin"
+      if (stored === "admin") {
+        return {
+          username: "admin",
+          role: "Admin Specialist",
+        };
+      }
+
+      if (stored === "analyst") {
+        return {
+          username: "analyst",
+          role: "Lead Data Scientist",
+        };
+      }
+
+      // Fallback for any other plain string
+      return {
+        username: stored,
+        role: "RiskNet Analyst",
+      };
+    }
   });
 
   const handleLogin = (userData) => {
-    sessionStorage.setItem("risknet_user", userData.username);
-    setUser(userData.username);
+    sessionStorage.setItem("risknet_user", JSON.stringify(userData));
+    setUser(userData);
   };
 
   const handleLogout = () => {
@@ -25,12 +52,48 @@ function App() {
     return <Login onLogin={handleLogin} />;
   }
 
+  const isAdmin = user.role === "Admin Specialist";
+
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<HomeDashboard user={user} onLogout={handleLogout} />} />
-        <Route path="/analytics" element={<AnalyticsDashboard user={user} onLogout={handleLogout} />} />
-        <Route path="/settings" element={<SystemSettings user={user} onLogout={handleLogout} />} />
+        <Route
+          path="/"
+          element={
+            <HomeDashboard
+              user={user.username}
+              role={user.role}
+              onLogout={handleLogout}
+            />
+          }
+        />
+
+        <Route
+          path="/analytics"
+          element={
+            <AnalyticsDashboard
+              user={user.username}
+              role={user.role}
+              onLogout={handleLogout}
+            />
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            isAdmin ? (
+              <SystemSettings
+                user={user.username}
+                role={user.role}
+                onLogout={handleLogout}
+              />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
+        />
+
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
