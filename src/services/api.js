@@ -1,8 +1,6 @@
 import axios from "axios";
 
-const API = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://127.0.0.1:8000",
-});
+const API = axios.create({ baseURL: "http://127.0.0.1:8000" });
 
 // ── Transactions ──────────────────────────────────────────────────────────────
 export const getTransactions = (limit = 20, filters = {}) => {
@@ -57,6 +55,8 @@ export const getAuditLog = (transactionId = null, limit = 50) => {
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 export const getFeedback  = (limit = 100) => API.get("/feedback/", { params: { limit } });
+export const submitAnalystFeedback = (transactionId, data) =>
+  API.post(`/feedback/${transactionId}`, data);
 
 // ── Retrain ───────────────────────────────────────────────────────────────────
 export const retrainModel = () => API.post("/retrain/");
