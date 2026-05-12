@@ -1,5 +1,40 @@
 /* ═══ existing base styles kept — new sections appended below ═══ */
+.analyst-panel {
+  padding: 20px;
+  border: 2px solid var(--warning);
+  background: var(--warning-bg);
+}
 
+.analyst-note-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.analyst-notes {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--card-bg);
+  outline: none;
+  resize: vertical;
+}
+
+.analyst-notes:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+}
+
+.analyst-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 /* ── Layout ──────────────────────────────────────────────────────────────── */
 .home-body {
   display: flex;
